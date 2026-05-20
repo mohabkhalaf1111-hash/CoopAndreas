@@ -5,7 +5,6 @@ on:
 
 env:
   PLUGIN_SDK_DIR: ${{ github.workspace }}\plugin-sdk
-  GTA_SA_DIR: ${{ github.workspace }}\gta_sa
 
 jobs:
   build:
@@ -21,12 +20,8 @@ jobs:
     - name: Setup xmake
       uses: xmake-io/github-action-setup-xmake@v1
 
-    - name: Create Folders
-      run: |
-        mkdir gta_sa
-        mkdir Release
-
     - name: Download and Build plugin-sdk
+      shell: cmd
       run: |
         git clone https://github.com/DK22Pac/plugin-sdk.git
         cd plugin-sdk
@@ -34,23 +29,19 @@ jobs:
         .\tools\premake\premake5.exe --file=tools\premake\premake5.lua vs2022
         msbuild plugin-sdk.sln /p:Configuration=Release /p:Platform=Win32 /m
       
-    - name: Configure xmake
-      run: xmake f -m release -a x86 -p windows -y
-
-    - name: Build Proxy
-      run: xmake --build proxy
-
-    - name: Build Server
-      run: xmake --build server
-
-    - name: Build Client
-      run: xmake --build client
-
-    - name: Collect Release Files
+    - name: Build CoopAndreas
+      shell: cmd
       run: |
-        Copy-Item -Path gta_sa\CoopAndreasSA.dll -Destination Release\CoopAndreasSA.dll
-        Copy-Item -Path build\windows\x86\release\proxy.dll -Destination Release\eax.dll
-        Copy-Item -Path build\windows\x86\release\server.exe -Destination Release\server.exe
+        xmake f -m release -a x86 -p windows -y
+        xmake
+        
+    - name: Collect Release Files
+      shell: cmd
+      run: |
+        mkdir Release
+        copy build\windows\x86\release\CoopAndreasSA.dll Release\
+        copy build\windows\x86\release\proxy.dll Release\eax.dll
+        copy build\windows\x86\release\server.exe Release\
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
