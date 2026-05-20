@@ -1,0 +1,43 @@
+name: Build CoopAndreas
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+
+    - name: Download plugin-sdk
+      run: |
+        git clone https://github.com/DK22Pac/plugin-sdk.git
+        cd plugin-sdk
+        git checkout 050d18b6e1770477deab81a40028a40277583d97
+      
+    - name: Build CoopAndreas
+      env:
+        PLUGIN_SDK_DIR: ${{ github.workspace }}\plugin-sdk
+      run: |
+        xmake f -m release -a x86 -p windows
+        xmake --build client
+        xmake --build server
+        xmake --build proxy
+
+    - name: Collect Release Files
+      run: |
+        mkdir Release
+        copy build\windows\x86\release\CoopAndreasSA.dll Release\
+        copy build\windows\x86\release\proxy.dll Release\eax.dll
+        copy build\windows\x86\release\server.exe Release\
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: CoopAndreas-Ready-Files
+        path: Release
