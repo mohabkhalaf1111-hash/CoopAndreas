@@ -11,25 +11,35 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
     - name: Setup xmake
       uses: xmake-io/github-action-setup-xmake@v1
 
-    - name: Download plugin-sdk
+    - name: Download and Build plugin-sdk
+      env:
+        PLUGIN_SDK_DIR: ${{ github.workspace }}\plugin-sdk
+      shell: cmd
       run: |
         git clone https://github.com/DK22Pac/plugin-sdk.git
         cd plugin-sdk
         git checkout 050d18b6e1770477deab81a40028a40277583d97
+        .\tools\premake\premake5.exe --file=tools\premake\premake5.lua vs2022
+        for %%f in (*.sln) do msbuild "%%f" /p:Configuration=Release /p:Platform=Win32 /m || exit 1
       
     - name: Build CoopAndreas
       env:
         PLUGIN_SDK_DIR: ${{ github.workspace }}\plugin-sdk
+      shell: cmd
       run: |
         xmake f -m release -a x86 -p windows
-        xmake --build client
-        xmake --build server
-        xmake --build proxy
+        xmake --build client || exit 1
+        xmake --build server || exit 1
+        xmake --build proxy || exit 1
 
     - name: Collect Release Files
+      shell: cmd
       run: |
         mkdir Release
         copy build\windows\x86\release\CoopAndreasSA.dll Release\
@@ -40,4 +50,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: CoopAndreas-Ready-Files
-        path: Release
+        path: Release\*
